@@ -69,13 +69,13 @@ PointCloudData* SemanticKITTILoader::readFromFile(const string& filePath)
     clock_t endRead = clock();
     spdlog::debug("Reading bin file takes {:.4f}s.", (double)(endRead-start)/CLOCKS_PER_SEC);
 
-    if (!filterData(*pcd)) return nullptr;
-    clock_t endFilter = clock();
-    spdlog::debug("Filtering and downsampling point cloud takes {:.4f}s.", (double)(endFilter-endRead)/CLOCKS_PER_SEC);
+    // if (!filterData(*pcd)) return nullptr;
+    // clock_t endFilter = clock();
+    // spdlog::debug("Filtering and downsampling point cloud takes {:.4f}s.", (double)(endFilter-endRead)/CLOCKS_PER_SEC);
 
     if (!extendDims(*pcd)) return nullptr;
     clock_t endExtendDims = clock();
-    spdlog::debug("Extending channels takes {:.4f}s.", (double)(endExtendDims-endFilter)/CLOCKS_PER_SEC);
+    spdlog::debug("Extending channels takes {:.4f}s.", (double)(endExtendDims-endRead)/CLOCKS_PER_SEC);
 
     examinePCD(*pcd);
     spdlog::info("Reading and processing point cloud takes {:.4f}s totally.", (double)(endExtendDims-start)/CLOCKS_PER_SEC);

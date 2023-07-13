@@ -16,9 +16,11 @@ void saveVector(string path, vector<T>& vec);
 
 int main()
 {
-    string enginePath = "/root/autodl-nas/scatter_net.engine";
-    string dataDir = "/root/autodl-tmp/dataset/sequences/00/velodyne/";
-    string saveDir = "/root/autodl-tmp/results/0217/";
+    string enginePath = "/root/autodl-tmp/scatter_net.engine";
+    // string dataDir = "/root/autodl-tmp/dataset/sequences/00/velodyne/";
+    // string saveDir = "/root/autodl-tmp/results/0217/";
+    string dataDir = "/root/autodl-tmp/data/";
+    string saveDir = "/root/autodl-tmp/save_data/";
     // string dataPath = "/root/autodl-tmp/dataset/sequences/00/velodyne/000000.bin";
     spdlog::set_level(spdlog::level::info);
     vector<string> files;
