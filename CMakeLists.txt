@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(CUDA_HOME "/usr/local/cuda-11.3")
+set(CUDA_HOME "/usr/local/cuda-11.6")
 set(CPGNET_LIBS "/root/autodl-tmp/libscatter_max_tensorrt.so")
 
 set(CMAKE_CXX_COMPILE "/usr/bin/g++")
@@ -21,8 +21,12 @@ find_library(SPDLOG_LIB spdlog)
 
 message(STATUS "include ${CUDA_HOME}/include")
 
-file(GLOB CUDA_LIBS "${CUDA_HOME}/lib64/*.so")
 file(GLOB TRT_LIBS "/root/autodl-tmp/TensorRT-8.4.3.1/lib/*")
+
+file(GLOB CUDA_LIBS "${CUDA_HOME}/lib64/*.so")
+list(REMOVE_ITEM CUDA_LIBS "${CUDA_HOME}/lib64/libnvrtc.so")
+list(APPEND CUDA_LIBS "${CUDA_HOME}/lib64/libnvrtc.so.11.6.55")
+
 
 add_executable(
     test

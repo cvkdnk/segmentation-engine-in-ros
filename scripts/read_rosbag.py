@@ -44,7 +44,8 @@ for i, (topic, msg, t) in tqdm(enumerate(bag.read_messages(topics=["/velodyne_po
     points_array = points_array.astype(np.float32)
     # logging.debug(f"points_array.dtype: {points_array.dtype}")
     assert points_array.dtype == np.float32
-    points_array.tofile(f"/root/autodl-tmp/data/{i}_bin")
+    points_array[:, 3] = (points_array[:, 3] + points_array[:, 3].min()) / points_array[:, 3].max()
+    points_array.tofile(f"/root/autodl-tmp/sequences/11/velodyne/{i}.bin")
 
 
 bag.close()
