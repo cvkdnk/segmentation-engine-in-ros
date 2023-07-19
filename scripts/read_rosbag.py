@@ -42,9 +42,10 @@ for i, (topic, msg, t) in tqdm(enumerate(bag.read_messages(topics=["/velodyne_po
     cloud_points = pc2.read_points(msg, field_names=["x","y","z", "intensity"], skip_nans=True)
     points_array = np.array(list(cloud_points))
     points_array = points_array.astype(np.float32)
-    # logging.debug(f"points_array.dtype: {points_array.dtype}")
+    print("===================================================================================")
+    print(f"intensity: {points_array.max(axis=0)} {points_array.min(axis=0)} {points_array.mean(axis=0)}")
     assert points_array.dtype == np.float32
-    points_array[:, 3] = (points_array[:, 3] + points_array[:, 3].min()) / points_array[:, 3].max()
+    points_array[:, 3] = points_array[:, 3] / 256.0
     points_array.tofile(f"/root/autodl-tmp/sequences/11/velodyne/{i}.bin")
 
 
