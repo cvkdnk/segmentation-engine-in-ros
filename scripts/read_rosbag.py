@@ -20,7 +20,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-bag = rosbag.Bag('/root/autodl-tmp/f1_2023-07-05-17-01-17.bag')
+bag = rosbag.Bag('/home/cls2021/cvkdnk/download/f1_2023-07-05-17-01-17.bag')
 
 rosbag_info = bag.get_type_and_topic_info()
 
@@ -42,11 +42,9 @@ for i, (topic, msg, t) in tqdm(enumerate(bag.read_messages(topics=["/velodyne_po
     cloud_points = pc2.read_points(msg, field_names=["x","y","z", "intensity"], skip_nans=True)
     points_array = np.array(list(cloud_points))
     points_array = points_array.astype(np.float32)
-    print("===================================================================================")
-    print(f"intensity: {points_array.max(axis=0)} {points_array.min(axis=0)} {points_array.mean(axis=0)}")
     assert points_array.dtype == np.float32
-    points_array[:, 3] = points_array[:, 3] / 256.0
-    points_array.tofile(f"/root/autodl-tmp/sequences/11/velodyne/{i}.bin")
+    points_array[:, 3] = points_array[:, 3] / 255.0
+    points_array.tofile(f"/home/cls2021/cvkdnk/rosbag/sequences/11/velodyne/{i}.bin")
 
 
 bag.close()
