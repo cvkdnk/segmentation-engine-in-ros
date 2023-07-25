@@ -54,9 +54,15 @@ def loadVelodynePoints(bag, save_path=None):
         points_array[:, 3] /= 255.0
 
         if save_path is not None:
-            points_array.tofile(save_path + "{i}.bin")
+            points_array.tofile(save_path + f"{i}.bin")
         # yield points_array
-
+        
+def load_image(bag, save_path=None):
+    bridge = CvBridge()
+    for i, (topic, msg, t) in tqdm(
+            enumerate(bag.read_messages('/camera/rgb/image_rect_color'))):
+        cv_image = bridge.imgmsg_to_cv2(msg, "bgr8")
+        cv2.imwrite(save_path.replace('velodyne','camera')+f"{i}.bin",cv_image)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='read_rosbag')
@@ -77,5 +83,6 @@ if __name__ == "__main__":
 
     if not args.xload:
         loadVelodynePoints(bag, save_path)
+        load_image(bag, save_path)
 
     bag.close()
