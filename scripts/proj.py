@@ -78,9 +78,74 @@ class RangeProject():
         }}
 
 
+class BevProject():
+    RETURN_TYPE="Bev"
+
+    def __init__(self, **config):
+        self.resolution = config["resolution"]
+        self.x_range = config["x_range"]
+        self.y_range = config["y_range"]
+
+    @classmethod
+    def gen_config_template(cls):
+        return {
+            "resolution": 0.2,
+            "x_range": (-50, 50),
+            "y_range": (-50, 50)
+        }
+
+            
+    def __call__(self, data):
+        """
+        Convert a point cloud to a bird's eye view image.
+
+        Args:
+            points: (N, 3) numpy array, the point cloud, each row is a point (x, y, z).
+            self.resolution: float, the self.resolution of the BEV image.
+            width_range: tuple of float, (min, max) width values, points outside this range are ignored.
+            length_range: tuple of float, (min, max) length values, points outside this range are ignored.
+
+        Returns:
+        """
+        points = data["Point"]
+        select_points = (points[:, 0] > self.x_range[0]) & (points[:, 0] < self.x_range[1]) & (points[:, 1] > self.y_range[0]) & (points[:, 1] < self.y_range[1])
+        clip_points = points.copy()
+        clip_points[:, 0] = np.clip(clip_points[:, 0], self.x_range[0], self.x_range[1])
+        clip_points[:, 1] = np.clip(clip_points[:, 1], self.y_range[0], self.y_range[1])
+        b2p = clip_points[:, :2] / self.resolution
+        b2p[:, 0] -= self.x_range[0] / self.resolution
+        b2p[:, 1] -= self.y_range[0] / self.resolution
+
+        select_points_indices = select_points.nonzero()[0]
+        selected_points = points[select_points]
+        pt_img_coords = (selected_points[:, :2] / self.resolution)
+        pt_img_coords[:, 0] -= self.x_range[0] / self.resolution
+        pt_img_coords[:, 1] -= self.y_range[0] / self.resolution
+        pt_img_coords = pt_img_coords.astype(np.int64)
+        unq, unq_inv, unq_cnt = np.unique(pt_img_coords, return_inverse=True, return_counts=True, axis=0)
+        
+        z_values = selected_points[:, 2]
+        max_z_indices = np.zeros(unq.shape[0], dtype=np.int64)
+        for idx in range(unq.shape[0]):
+            indices_in_group = np.where(unq_inv == idx)[0]
+            max_z_index_in_group = indices_in_group[np.argmax(z_values[indices_in_group])]
+            max_z_indices[idx] = max_z_index_in_group
+        max_z_coords = pt_img_coords[max_z_indices]
+        p2b = np.full((int((self.x_range[1]-self.x_range[0])/self.resolution), int((self.y_range[1]-self.y_range[0])/self.resolution)), -1, dtype=np.int64)
+        p2b[max_z_coords[:, 0], max_z_coords[:, 1]] = select_points_indices[max_z_indices]
+        mask = np.zeros_like(p2b, dtype=np.int64)
+        mask[max_z_coords[:, 0], max_z_coords[:, 1]] = 1
+        return {"Bev": {
+            "p2b": p2b,
+            "b2p": pt_img_coords,
+            "mask": mask
+        }}
+
+
 def label_mapping(labels, label_map):
     return np.vectorize(label_map.__getitem__)(labels)
 
 
 if __name__ == "__main__":
     range_proj = RangeProject(proj_H=16, proj_W=1024, proj_fov_up=3, proj_fov_down=-25)
+    points = np.array([[0.1,0.1,0.1],[1.1,1.1,1.1],[3.1,1.1,0.5],[0.2,0.3,0.2]])
