@@ -34,6 +34,7 @@ class RangeProject():
         }
 
     def __call__(self, data):
+        logger.debug("Range Project "+("-"*20))
         pt_features = data["Point"]
         coords = pt_features[..., :3]
         coords_sph = cart2spherical(coords)
@@ -74,6 +75,7 @@ class RangeProject():
         range_image[proj_y, proj_x, 1:] = order_pt_features
         range_mask = np.zeros((self.proj_H, self.proj_W), dtype=np.int32)
         range_mask[proj_y, proj_x] = 1
+        logger.debug("valid pixels count: %d / %d" % (np.sum(range_mask), range_mask.shape[0]+range_mask.shape[1]))
 
         return {"Range": {
             "range_image": range_image,
@@ -140,7 +142,7 @@ class BevProject():
         # process conflict by z_max
         unq, unq_inv, unq_cnt = np.unique(pt_img_coords, return_inverse=True, return_counts=True, axis=0)
         conflict = unq_cnt > 1
-        logger.debug("conflict: %d/%d pixels, max %d points conflict" % (conflict.sum(), conflict.shape[0], unq_cnt.max()[0]))
+        logger.debug("conflict: %d / %d pixels, max %d points conflict" % (conflict.sum(), conflict.shape[0], unq_cnt.max()))
         
         z_values = selected_points[:, 2]
         max_z_indices = np.zeros(unq.shape[0], dtype=np.int64)
