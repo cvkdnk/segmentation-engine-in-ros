@@ -46,7 +46,7 @@ class AverageMeter(object):
         self.reset()
 
     def reset(self):
-        # ??ʼ???????????ܺͣ?ƽ???ͣ?ƽ??ֵ?ͱ?׼??
+        # 初始化计数器，总和，平方和，平均值和标准差
         self.count = 0
         self.sum = np.zeros(self.dim)
         self.sqsum = np.zeros(self.dim)
@@ -55,21 +55,20 @@ class AverageMeter(object):
 
     def update(self, val, n=1):
         assert val.shape[1] == self.dim
-        # ???¼????????ܺͣ?ƽ????
+        # 更新计数器，总和，平方和
         self.count += n
         self.sum += np.sum(val, axis=0) * n
         self.sqsum += np.sum(np.square(val), axis=0) * n
-        # ????ƽ??ֵ?ͱ?׼??
+        # 计算平均值和标准差
         self.avg = self.sum / self.count
         self.std = np.sqrt(self.sqsum / self.count - np.square(self.avg))
 
     def __str__(self):
-        # ????ƽ??ֵ?ͱ?׼?????ַ?????ʾ
+        # 返回平均值和标准差的字符串表示
         avg_str = ', '.join([f"{x:.4f}" for x in self.avg])
         std_str = ', '.join([f"{x:.4f}" for x in self.std])
 
         return f"avg: {avg_str}, std: {std_str}"
-
 
 
 def read_label_colors(file_path, swap_bgr=True):
@@ -79,14 +78,6 @@ def read_label_colors(file_path, swap_bgr=True):
 
     # get label name list
     label_dict = data_loaded['labels']
-
-    # filter valid labels
-    valid_labels = list(data_loaded['learning_map_inv'].values())
-    for label_id in list(color_map.keys()):
-        if label_id not in valid_labels:
-            color_map.pop(label_id)
-            label_dict.pop(label_id)
-    logger.debug(f"filted colormap: {color_map}")
 
     # swap colors from BGR to RGB
 
@@ -129,24 +120,34 @@ def plot_color_example(yaml_path, root_path):
     color_map, label_dict = read_label_colors(yaml_path)
     color_example = np.zeros((200, 1000, 3), dtype=np.int32)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.7
+    font_scale = 0.6
     font_color = (255, 255, 255)  # white color
     thickness = 1
+    stroke_size = 2  # Stroke thickness
 
     for i, (label_id, color) in enumerate(color_map.items()):
         row = i // 10
         column = i % 10
-        color_example[row * 100: row * 100 + 100, 
-                      column * 100: column * 100 + 100] = color
+        color_example[row * 100: row * 100 + 100,
+        column * 100: column * 100 + 100] = color
+
         label = label_dict[label_id]
-        # adjust this to change the text position
+
+        # Add the text with stroke (outline)
+        # Draw the text with a slightly larger thickness and a different color
         text_position = (column * 100 + 5, row * 100 + 50)
+        for stroke_x in range(-stroke_size, stroke_size + 1):
+            for stroke_y in range(-stroke_size, stroke_size + 1):
+                if stroke_x == 0 and stroke_y == 0:
+                    continue
+                text_position_stroke = (text_position[0] + stroke_x, text_position[1] + stroke_y)
+                cv2.putText(color_example, label, text_position_stroke, font, font_scale,
+                            (0, 0, 0), thickness + 1, cv2.LINE_AA)
+
         cv2.putText(color_example, label, text_position, font, font_scale,
                     font_color, thickness, cv2.LINE_AA)
-
-    cv2.imwrite(root_path + "color_example.png", color_example)
+    cv2.imwrite("color_example.png", color_example)
     return color_map, label_dict
-
 
 
 def plotImages(range_proj_H=32,
@@ -215,15 +216,14 @@ def plotImages(range_proj_H=32,
         range_depth_img = range_depth_img / range_depth_img.max() * 255
         range_color_img = colors[range_res["Range"]["p2r"]]
         range_color_img[range_res["Range"]["range_mask"] == 0] = 0
-        cv2.imwrite(ROOT_PATH + f"range/{i:04d}.png", range_color_img)
-        cv2.imwrite(ROOT_PATH + f"depth/{i:04d}.png", range_depth_img)
+        cv2.imwrite(pcd_file.replace('velodyne', 'range').replace('bin', 'png'), range_color_img)
+        cv2.imwrite(pcd_file.replace('velodyne', 'depth').replace('bin', 'png'), range_depth_img)
 
         # Project to bev and save images
         bev_res = bev_proj({"Point": pc})
         bev_img = colors[bev_res["Bev"]["p2b"]]
         bev_img[bev_res["Bev"]["mask"] == 0] = 0
-        cv2.imwrite(ROOT_PATH + f"bev/{i:04d}.png", bev_img)
-
+        cv2.imwrite(pcd_file.replace('velodyne', 'bev').replace('bin', 'png'), bev_img)
     if show_data_details:
         logger.info(meters)
     logger.info("Plot images completely (if failed, please check permission)")
@@ -259,7 +259,6 @@ def videoPin(fourcc, scale, fps):
         depth_img = cv2.imread(image.replace("range", "depth"))
         bev_img = cv2.imread(image.replace("range", "bev"))
         camera_img = cv2.imread(image.replace("range", "camera"))
-        print(image.replace("range", "camera"))
         mix_img = np.zeros((720, 1280, 3), dtype=np.uint8)
 
         # Resize and write bev_img to mix_img
@@ -268,8 +267,8 @@ def videoPin(fourcc, scale, fps):
 
         # Resize and write img and depth_img to mix_img
         img_range = np.concatenate((img, depth_img), axis=0)  # concat img and depth_img
-        img_range = cv2.resize(img_range, (580, 128))  # resize to 512*32
-        mix_img[:128, 700:] = img_range  # write to mix_img
+        img_range = cv2.resize(img_range, (512, 64))  # resize to 512*32
+        mix_img[:64, 768:] = img_range  # write to mix_img
 
         # Resize and write camera_img to mix_img
         camera_img = cv2.resize(camera_img, (480, 360))  # resize to 480*360
@@ -336,3 +335,4 @@ if __name__ == "__main__":
 
     if not args.video and not args.image:
         logger.warning("Script need args such as: python plot.py -i -v")
+
