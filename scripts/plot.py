@@ -71,6 +71,7 @@ class AverageMeter(object):
         return f"avg: {avg_str}, std: {std_str}"
 
 
+
 def read_label_colors(file_path, swap_bgr=True):
     with open(file_path, 'r') as stream:
         data_loaded = yaml.safe_load(stream)
@@ -78,6 +79,14 @@ def read_label_colors(file_path, swap_bgr=True):
 
     # get label name list
     label_dict = data_loaded['labels']
+
+    # filter valid labels
+    valid_labels = list(data_loaded['learning_map_inv'].values())
+    for label_id in list(color_map.keys()):
+        if label_id not in valid_labels:
+            color_map.pop(label_id)
+            label_dict.pop(label_id)
+    logger.debug(f"filted colormap: {color_map}")
 
     # swap colors from BGR to RGB
 
@@ -115,6 +124,31 @@ def read_point_cloud_and_labels(pcd_path, label_path, color_map):
     return point_cloud, colors
 
 
+def plot_color_example(yaml_path, root_path):
+    # Load label colors
+    color_map, label_dict = read_label_colors(yaml_path)
+    color_example = np.zeros((200, 1000, 3), dtype=np.int32)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.7
+    font_color = (255, 255, 255)  # white color
+    thickness = 1
+
+    for i, (label_id, color) in enumerate(color_map.items()):
+        row = i // 10
+        column = i % 10
+        color_example[row * 100: row * 100 + 100, 
+                      column * 100: column * 100 + 100] = color
+        label = label_dict[label_id]
+        # adjust this to change the text position
+        text_position = (column * 100 + 5, row * 100 + 50)
+        cv2.putText(color_example, label, text_position, font, font_scale,
+                    font_color, thickness, cv2.LINE_AA)
+
+    cv2.imwrite(root_path + "color_example.png", color_example)
+    return color_map, label_dict
+
+
+
 def plotImages(range_proj_H=32,
                range_proj_W=512,
                range_proj_fov_up=15,
@@ -125,26 +159,8 @@ def plotImages(range_proj_H=32,
                show_data_details=False):
     logger.info("plot images")
 
-    # Load label colors
-    color_map, label_dict = read_label_colors(SEMANTICKITTI_YAML_PATH)
-    color_example = np.zeros((200, 1000, 3), dtype=np.int32)
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.5
-    font_color = (255, 255, 255)  # white color
-    thickness = 1
-
-    for label_id, color in color_map.items():
-        row = label_id // 10
-        column = label_id % 10
-        color_example[row * 100:row * 100 + 100,
-        column * 100:column * 100 + 100] = color
-        label = label_dict[label_id]
-        # adjust this to change the text position
-        text_position = (column * 100 + 5, row * 100 + 50)
-        cv2.putText(color_example, label, text_position, font, font_scale,
-                    font_color, thickness, cv2.LINE_AA)
-
-    cv2.imwrite(ROOT_PATH + "color_example.png", color_example)
+    # plot color-label example image
+    color_map, label_dict = plot_color_example(SEMANTICKITTI_YAML_PATH, ROOT_PATH)
 
     # Directory paths
     pcd_dir = ROOT_PATH + 'velodyne/'
