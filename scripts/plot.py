@@ -268,8 +268,8 @@ def videoPin(fourcc, scale, fps):
 
         # Resize and write img and depth_img to mix_img
         img_range = np.concatenate((img, depth_img), axis=0)  # concat img and depth_img
-        img_range = cv2.resize(img_range, (512, 64))  # resize to 512*32
-        mix_img[:64, 768:] = img_range  # write to mix_img
+        img_range = cv2.resize(img_range, (580, 128))  # resize to 512*32
+        mix_img[:128, 700:] = img_range  # write to mix_img
 
         # Resize and write camera_img to mix_img
         camera_img = cv2.resize(camera_img, (480, 360))  # resize to 480*360
