@@ -15,10 +15,6 @@ Frequency: 9.91
 
 # e.g. python read_rosbag.py -s
 
-# CHANGE IT
-save_path = "/root/autodl-tmp/sequences/11/velodyne/"
-bag_path = "/root/autodl-tmp/f1_2023-07-05-17-01-17.bag"
-
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
