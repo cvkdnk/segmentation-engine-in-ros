@@ -74,8 +74,17 @@ if __name__ == "__main__":
                         '--xload',
                         action="store_true",
                         help="dont load and save the velodyne points")
+    parser.add_argument('-p', '--path',
+                        type=str,
+                        default="/root/autodl-tmp/sequences/11/velodyne/",
+                        help="save path cover save_path")
+    parser.add_argument('-b', '--bagpath', 
+                        type=str,
+                        default="/root/autodl-tmp/f1_2023-07-05-17-01-17.bag")
     args = parser.parse_args()
 
+    bag_path = args.bagpath
+    save_path = args.path
     bag = rosbag.Bag(bag_path)
 
     if args.show:

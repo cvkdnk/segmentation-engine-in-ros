@@ -2,7 +2,6 @@ import numpy as np
 import logging
 import time
 
-
 logger = logging.getLogger("proj")
 
 
@@ -34,7 +33,7 @@ class RangeProject():
         }
 
     def __call__(self, data):
-        logger.debug("Range Project "+("-"*20))
+        logger.debug("Range Project " + ("-" * 20))
         pt_features = data["Point"]
         coords = pt_features[..., :3]
         coords_sph = cart2spherical(coords)
@@ -75,7 +74,7 @@ class RangeProject():
         range_image[proj_y, proj_x, 1:] = order_pt_features
         range_mask = np.zeros((self.proj_H, self.proj_W), dtype=np.int32)
         range_mask[proj_y, proj_x] = 1
-        logger.debug("valid pixels count: %d / %d" % (np.sum(range_mask), range_mask.shape[0]+range_mask.shape[1]))
+        logger.debug("valid pixels count: %d / %d" % (np.sum(range_mask), range_mask.shape[0] + range_mask.shape[1]))
 
         return {"Range": {
             "range_image": range_image,
@@ -86,7 +85,7 @@ class RangeProject():
 
 
 class BevProject():
-    RETURN_TYPE="Bev"
+    RETURN_TYPE = "Bev"
 
     def __init__(self, **config):
         self.resolution = config["resolution"]
@@ -101,7 +100,6 @@ class BevProject():
             "y_range": (-50, 50)
         }
 
-            
     def __call__(self, data):
         """
         Convert a point cloud to a bird's eye view image.
@@ -114,11 +112,12 @@ class BevProject():
 
         Returns:
         """
-        logger.debug("BEV Project "+("-"*20))
+        logger.debug("BEV Project " + ("-" * 20))
         points = data["Point"]
-        
+
         # filt points by self.x_range and self.y_range
-        select_points = (points[:, 0] > self.x_range[0]) & (points[:, 0] < self.x_range[1]) & (points[:, 1] > self.y_range[0]) & (points[:, 1] < self.y_range[1])
+        select_points = (points[:, 0] > self.x_range[0]) & (points[:, 0] < self.x_range[1]) & (
+                points[:, 1] > self.y_range[0]) & (points[:, 1] < self.y_range[1])
         logger.debug("select %d/%d points (by filter)" % (select_points.sum(), points.shape[0]))
 
         # clip points and make b2p
@@ -130,20 +129,21 @@ class BevProject():
         b2p[:, 1] -= self.y_range[0] / self.resolution
 
         # get original indices
+
         select_points_indices = select_points.nonzero()[0]
         selected_points = points[select_points]
 
         # compute points' pixel coords in image
-        pt_img_coords = (selected_points[:, :2] / self.resolution)
-        pt_img_coords[:, 0] -= self.x_range[0] / self.resolution
-        pt_img_coords[:, 1] -= self.y_range[0] / self.resolution
-        pt_img_coords = pt_img_coords.astype(np.int64)
+        pt_img_coords = (selected_points[:, :2] / self.resolution).astype(np.int64)
+        pt_img_coords[:, 0] -= int(self.x_range[0] / self.resolution)
+        pt_img_coords[:, 1] -= int(self.y_range[0] / self.resolution)
 
         # process conflict by z_max
         unq, unq_inv, unq_cnt = np.unique(pt_img_coords, return_inverse=True, return_counts=True, axis=0)
         conflict = unq_cnt > 1
-        logger.debug("conflict: %d / %d pixels, max %d points conflict" % (conflict.sum(), conflict.shape[0], unq_cnt.max()))
-        
+        logger.debug(
+            "conflict: %d / %d pixels, max %d points conflict" % (conflict.sum(), conflict.shape[0], unq_cnt.max()))
+
         z_values = selected_points[:, 2]
         max_z_indices = np.zeros(unq.shape[0], dtype=np.int64)
         for idx in range(unq.shape[0]):
@@ -153,7 +153,8 @@ class BevProject():
         max_z_coords = pt_img_coords[max_z_indices]
 
         # gen p2b and mask
-        p2b = np.full((int((self.x_range[1]-self.x_range[0])/self.resolution), int((self.y_range[1]-self.y_range[0])/self.resolution)), -1, dtype=np.int64)
+        p2b = np.full((int((self.x_range[1] - self.x_range[0]) / self.resolution),
+                       int((self.y_range[1] - self.y_range[0]) / self.resolution)), -1, dtype=np.int64)
         p2b[max_z_coords[:, 0], max_z_coords[:, 1]] = select_points_indices[max_z_indices]
         mask = np.zeros_like(p2b, dtype=np.int64)
         mask[max_z_coords[:, 0], max_z_coords[:, 1]] = 1
@@ -171,4 +172,4 @@ def label_mapping(labels, label_map):
 
 if __name__ == "__main__":
     range_proj = RangeProject(proj_H=16, proj_W=1024, proj_fov_up=3, proj_fov_down=-25)
-    points = np.array([[0.1,0.1,0.1],[1.1,1.1,1.1],[3.1,1.1,0.5],[0.2,0.3,0.2]])
+    points = np.array([[0.1, 0.1, 0.1], [1.1, 1.1, 1.1], [3.1, 1.1, 0.5], [0.2, 0.3, 0.2]])

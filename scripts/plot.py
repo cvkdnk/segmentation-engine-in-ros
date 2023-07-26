@@ -8,6 +8,7 @@ import logging
 from tqdm import tqdm
 
 from proj import RangeProject, label_mapping, BevProject
+
 """ dir structure like semantic kitti:
     velodyne/*.bin is points cloud data
     predictions/*.label is predict label data
@@ -17,8 +18,8 @@ from proj import RangeProject, label_mapping, BevProject
     mix_video is visualize video by concatenating range imgs"""
 
 # DIR
-ROOT_PATH = "/root/autodl-tmp/sequences/11/"
-SEMANTICKITTI_YAML_PATH = "/root/autodl-tmp/sequences/11/semantic-kitti.yaml"
+ROOT_PATH = "/home/cls2022/wW0428/data/rosbag/sequences/11/"
+SEMANTICKITTI_YAML_PATH = "../configs/semantic-kitti.yaml"
 
 # Visualize Images
 # range
@@ -37,6 +38,7 @@ FPS = 5.0
 
 logger = logging.getLogger("plot")
 
+
 class AverageMeter(object):
 
     def __init__(self, dim):
@@ -44,7 +46,7 @@ class AverageMeter(object):
         self.reset()
 
     def reset(self):
-        # åˆå§‹åŒ–è®¡æ•°å™¨ï¼Œæ€»å’Œï¼Œå¹³æ–¹å’Œï¼Œå¹³å‡å€¼å’Œæ ‡å‡†å·®
+        # ³õÊ¼»¯¼ÆÊıÆ÷£¬×ÜºÍ£¬Æ½·½ºÍ£¬Æ½¾ùÖµºÍ±ê×¼²î
         self.count = 0
         self.sum = np.zeros(self.dim)
         self.sqsum = np.zeros(self.dim)
@@ -53,16 +55,16 @@ class AverageMeter(object):
 
     def update(self, val, n=1):
         assert val.shape[1] == self.dim
-        # æ›´æ–°è®¡æ•°å™¨ï¼Œæ€»å’Œï¼Œå¹³æ–¹å’Œ
+        # ¸üĞÂ¼ÆÊıÆ÷£¬×ÜºÍ£¬Æ½·½ºÍ
         self.count += n
         self.sum += np.sum(val, axis=0) * n
         self.sqsum += np.sum(np.square(val), axis=0) * n
-        # è®¡ç®—å¹³å‡å€¼å’Œæ ‡å‡†å·®
+        # ¼ÆËãÆ½¾ùÖµºÍ±ê×¼²î
         self.avg = self.sum / self.count
         self.std = np.sqrt(self.sqsum / self.count - np.square(self.avg))
 
     def __str__(self):
-        # è¿”å›å¹³å‡å€¼å’Œæ ‡å‡†å·®çš„å­—ç¬¦ä¸²è¡¨ç¤º
+        # ·µ»ØÆ½¾ùÖµºÍ±ê×¼²îµÄ×Ö·û´®±íÊ¾
         avg_str = ', '.join([f"{x:.4f}" for x in self.avg])
         std_str = ', '.join([f"{x:.4f}" for x in self.std])
 
@@ -88,8 +90,8 @@ def read_label_colors(file_path, swap_bgr=True):
 
 def cart2spherical(input_xyz):
     """return rho, phi, theta; also known as depth, yaw, pitch"""
-    depth = np.sqrt(input_xyz[..., 0]**2 + input_xyz[..., 1]**2 +
-                    input_xyz[..., 2]**2)
+    depth = np.sqrt(input_xyz[..., 0] ** 2 + input_xyz[..., 1] ** 2 +
+                    input_xyz[..., 2] ** 2)
     yaw = np.arctan2(input_xyz[..., 1], input_xyz[..., 0])
     pitch = np.arcsin(input_xyz[..., 2] / depth)
 
@@ -135,7 +137,7 @@ def plotImages(range_proj_H=32,
         row = label_id // 10
         column = label_id % 10
         color_example[row * 100:row * 100 + 100,
-                      column * 100:column * 100 + 100] = color
+        column * 100:column * 100 + 100] = color
         label = label_dict[label_id]
         # adjust this to change the text position
         text_position = (column * 100 + 5, row * 100 + 50)
@@ -181,9 +183,9 @@ def plotImages(range_proj_H=32,
                                                  color_map)
 
         # Update AverageMeter
-
         if show_data_details:
             meters.update(pc)
+        logger.debug(pcd_file)
 
         # Save as csv file (used by cloudcompare)
         save_array = np.concatenate((pc[:, :3], colors), axis=1)
@@ -227,7 +229,7 @@ def videoPin(fourcc, scale, fps):
     if isinstance(fourcc, str):
         fourcc = cv2.VideoWriter_fourcc(*fourcc)
     else:
-        raise NotImplementError("args: fourcc should be a string with 4 char")
+        raise NotImplementedError("args: fourcc should be a string with 4 char")
     video = cv2.VideoWriter(ROOT_PATH + 'video.avi', fourcc, fps,
                             (width * scale[0], height * scale[1]))
     mix_video = cv2.VideoWriter(ROOT_PATH + 'mix_video.avi', fourcc, fps,
@@ -241,24 +243,25 @@ def videoPin(fourcc, scale, fps):
         depth_img = cv2.imread(image.replace("range", "depth"))
         bev_img = cv2.imread(image.replace("range", "bev"))
         camera_img = cv2.imread(image.replace("range", "camera"))
-        mix_img = np.zeros((720, 1280, 3))
+        print(image.replace("range", "camera"))
+        mix_img = np.zeros((720, 1280, 3), dtype=np.uint8)
 
         # Resize and write bev_img to mix_img
         bev_img = cv2.resize(bev_img, (700, 700))
         mix_img[:700, :700] = bev_img
 
         # Resize and write img and depth_img to mix_img
-        img_range = np.concatenate((img, depth_img), axis=1)  # concat img and depth_img
-        img_range = cv2.resize(img_range, (64, 512))  # resize to 512*32
-        mix_img[1280-512:, :64] = img_range  # write to mix_img
+        img_range = np.concatenate((img, depth_img), axis=0)  # concat img and depth_img
+        img_range = cv2.resize(img_range, (512, 64))  # resize to 512*32
+        mix_img[:64, 768:] = img_range  # write to mix_img
 
         # Resize and write camera_img to mix_img
-        camera_img = cv2.resize(camera_img, (360, 480))  # resize to 480*360
-        mix_img[750:1230, 164:524] = camera_img  # write to mix_img
+        camera_img = cv2.resize(camera_img, (480, 360))  # resize to 480*360
+        mix_img[164:524, 750:1230] = camera_img  # write to mix_img
 
         # Resize and write color_example to mix_img
-        color_example_resized = cv2.resize(color_example, (100, 500))  # resize to 500*100
-        mix_img[740:1240, 620:] = color_example_resized  # write to mix_img 
+        color_example_resized = cv2.resize(color_example, (500, 100))  # resize to 500*100
+        mix_img[620:, 740:1240] = color_example_resized  # write to mix_img
 
         # Write video file
         video.write(img)
@@ -298,7 +301,8 @@ if __name__ == "__main__":
         level=level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    logger.info("ROOT_PATH: "+ROOT_PATH)
+
+    logger.info("ROOT_PATH: " + ROOT_PATH)
     bev_h = (Y_RANGE[1] - Y_RANGE[0]) / RESOLUTION
     bev_w = (X_RANGE[1] - X_RANGE[0]) / RESOLUTION
     logger.info("Bev images size: {:d}x{:d}".format(int(bev_w), int(bev_h)))
@@ -307,12 +311,12 @@ if __name__ == "__main__":
         begin = time.time()
         plotImages(PROJ_HW[0], PROJ_HW[1], FOV_UP, FOV_DOWN, RESOLUTION,
                    X_RANGE, Y_RANGE, args.detail)
-        logger.info("plot images takes %.4f s", time.time()-begin)
+        logger.info("plot images takes %.4f s", time.time() - begin)
 
     if args.video:
         begin = time.time()
         videoPin(FOURCC, SCALE, FPS)
-        logger.info("pin video takes %.4f s", time.time()-begin)
+        logger.info("pin video takes %.4f s", time.time() - begin)
 
     if not args.video and not args.image:
         logger.warning("Script need args such as: python plot.py -i -v")
