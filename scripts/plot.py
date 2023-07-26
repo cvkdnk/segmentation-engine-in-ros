@@ -46,7 +46,7 @@ class AverageMeter(object):
         self.reset()
 
     def reset(self):
-        # 初始化计数器，总和，平方和，平均值和标准差
+        # ??始???????????芎停?平???停?平??值?捅?准??
         self.count = 0
         self.sum = np.zeros(self.dim)
         self.sqsum = np.zeros(self.dim)
@@ -55,16 +55,16 @@ class AverageMeter(object):
 
     def update(self, val, n=1):
         assert val.shape[1] == self.dim
-        # 更新计数器，总和，平方和
+        # ???录????????芎停?平????
         self.count += n
         self.sum += np.sum(val, axis=0) * n
         self.sqsum += np.sum(np.square(val), axis=0) * n
-        # 计算平均值和标准差
+        # ????平??值?捅?准??
         self.avg = self.sum / self.count
         self.std = np.sqrt(self.sqsum / self.count - np.square(self.avg))
 
     def __str__(self):
-        # 返回平均值和标准差的字符串表示
+        # ????平??值?捅?准?????址?????示
         avg_str = ', '.join([f"{x:.4f}" for x in self.avg])
         std_str = ', '.join([f"{x:.4f}" for x in self.std])
 

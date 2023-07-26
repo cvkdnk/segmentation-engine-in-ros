@@ -58,7 +58,7 @@ def load_image(bag, save_path=None):
     for i, (topic, msg, t) in tqdm(
             enumerate(bag.read_messages('/camera/rgb/image_rect_color'))):
         cv_image = bridge.imgmsg_to_cv2(msg, "bgr8")
-        cv2.imwrite(save_path.replace('velodyne','camera')+f"{i:04d}.bin",cv_image)
+        cv2.imwrite(save_path.replace('velodyne','camera')+f"{i:04d}.png",cv_image)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='read_rosbag')
