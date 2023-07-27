@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import argparse
 import numpy as np
 import glob
@@ -46,7 +47,7 @@ class AverageMeter(object):
         self.reset()
 
     def reset(self):
-        # ??ʼ???????????ܺͣ?ƽ???ͣ?ƽ??ֵ?ͱ?׼??
+        # 初始化计数器，总和，平方和，平均值和标准差
         self.count = 0
         self.sum = np.zeros(self.dim)
         self.sqsum = np.zeros(self.dim)
@@ -55,21 +56,20 @@ class AverageMeter(object):
 
     def update(self, val, n=1):
         assert val.shape[1] == self.dim
-        # ???¼????????ܺͣ?ƽ????
+        # 更新计数器，总和，平方和
         self.count += n
         self.sum += np.sum(val, axis=0) * n
         self.sqsum += np.sum(np.square(val), axis=0) * n
-        # ????ƽ??ֵ?ͱ?׼??
+        # 计算平均值和标准差
         self.avg = self.sum / self.count
         self.std = np.sqrt(self.sqsum / self.count - np.square(self.avg))
 
     def __str__(self):
-        # ????ƽ??ֵ?ͱ?׼?????ַ?????ʾ
+        # 返回平均值和标准差的字符串表示
         avg_str = ', '.join([f"{x:.4f}" for x in self.avg])
         std_str = ', '.join([f"{x:.4f}" for x in self.std])
 
         return f"avg: {avg_str}, std: {std_str}"
-
 
 
 def read_label_colors(file_path, swap_bgr=True):
@@ -129,9 +129,10 @@ def plot_color_example(yaml_path, root_path):
     color_map, label_dict = read_label_colors(yaml_path)
     color_example = np.zeros((200, 1000, 3), dtype=np.int32)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.7
+    font_scale = 0.6
     font_color = (255, 255, 255)  # white color
     thickness = 1
+    stroke_size = 2  # Stroke thickness
 
     for i, (label_id, color) in enumerate(color_map.items()):
         row = i // 10
@@ -139,14 +140,23 @@ def plot_color_example(yaml_path, root_path):
         color_example[row * 100: row * 100 + 100, 
                       column * 100: column * 100 + 100] = color
         label = label_dict[label_id]
-        # adjust this to change the text position
+
+        # Add the text with stroke (outline)
+        # Draw the text with a slightly larger thickness and a different color
         text_position = (column * 100 + 5, row * 100 + 50)
+        for stroke_x in range(-stroke_size, stroke_size + 1):
+            for stroke_y in range(-stroke_size, stroke_size + 1):
+                if stroke_x == 0 and stroke_y == 0:
+                    continue
+                text_position_stroke = (text_position[0] + stroke_x, text_position[1] + stroke_y)
+                cv2.putText(color_example, label, text_position_stroke, font, font_scale,
+                            (0, 0, 0), thickness + 1, cv2.LINE_AA)
+        
         cv2.putText(color_example, label, text_position, font, font_scale,
                     font_color, thickness, cv2.LINE_AA)
 
     cv2.imwrite(root_path + "color_example.png", color_example)
     return color_map, label_dict
-
 
 
 def plotImages(range_proj_H=32,
@@ -259,7 +269,6 @@ def videoPin(fourcc, scale, fps):
         depth_img = cv2.imread(image.replace("range", "depth"))
         bev_img = cv2.imread(image.replace("range", "bev"))
         camera_img = cv2.imread(image.replace("range", "camera"))
-        print(image.replace("range", "camera"))
         mix_img = np.zeros((720, 1280, 3), dtype=np.uint8)
 
         # Resize and write bev_img to mix_img
